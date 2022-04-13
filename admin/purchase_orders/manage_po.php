@@ -310,7 +310,9 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 				calculate()
 			})
 
-			tr.find('.item-select2').select2({placeholder:"Please Select here",width:"relative"})
+			setTimeout(() => {
+				tr.find('.item-select2').select2({placeholder:"Please Select here",width:"relative"})
+			}, 500);
 		})
 
 		if($('#item-list .po-item').length > 0){

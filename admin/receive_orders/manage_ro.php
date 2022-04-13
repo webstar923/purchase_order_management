@@ -235,6 +235,9 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 		<td class="align-middle p-0 text-center">
 			<input type="number" class="text-center w-100 border-0" value="1" step="any" name="qty[]"/>
 		</td>
+		<td class="align-middle p-0 text-center">
+			<input type="number" class="text-center w-100 border-0" step="any" name="received_qty[]" value="0"/>
+		</td>
 		<td class="align-middle p-1 item-unit">
 			<input type="text" class="text-center w-100 border-0" name="unit[]"/>
 		</td>
@@ -333,7 +336,9 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 				calculate()
 			})
 
-			tr.find('.item-select2').select2({placeholder:"Please Select here",width:"relative"})
+			setTimeout(() => {
+				tr.find('.item-select2').select2({placeholder:"Please Select here",width:"relative"})
+			}, 500);
 		})
 
 		if($('#item-list .po-item').length > 0){

@@ -103,6 +103,14 @@
                         </p>
                       </a>
                     </li>
+                    <li class="nav-item dropdown">
+                      <a href="<?php echo base_url ?>admin/?page=receive_orders" class="nav-link nav-receive_orders">
+                        <i class="nav-icon fas fa-file-import"></i>
+                        <p>
+                          Receive Orders
+                        </p>
+                      </a>
+                    </li>
                     <?php if($_settings->userdata('type') == 1): ?>
                     <li class="nav-header">Maintenance</li>
                     <li class="nav-item dropdown">

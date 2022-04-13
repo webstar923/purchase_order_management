@@ -1,6 +1,6 @@
 <?php
 if(isset($_GET['id']) && $_GET['id'] > 0){
-    $qry = $conn->query("SELECT * from `po_list` where id = '{$_GET['id']}' ");
+    $qry = $conn->query("SELECT * from `ro_list` where id = '{$_GET['id']}' ");
     if($qry->num_rows > 0){
         foreach($qry->fetch_assoc() as $k => $v){
             $$k=$v;
@@ -44,12 +44,29 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 </style>
 <div class="card card-outline card-info">
 	<div class="card-header">
-		<h3 class="card-title"><?php echo isset($id) ? "Update Purchase Order Details": "New Purchase Order" ?> </h3>
+		<h3 class="card-title"><?php echo isset($id) ? "Update Receive Order Details": "New Receive Order" ?> </h3>
 	</div>
 	<div class="card-body">
 		<form action="" id="po-form">
 			<input type="hidden" name ="id" value="<?php echo isset($id) ? $id : '' ?>">
 			<div class="row">
+				<div class="col-md-6 form-group">
+					<label for="po_id">PO #</span></label>
+					<select name="po_id" id="po_id" class="custom-select custom-select-sm rounded-0 select2" onchange="selectPurchaseOrder(this)">
+						<option value="" disabled <?php echo !isset($po_id) ? "selected" :'' ?>></option>
+						<?php 
+							$po_qry = $conn->query("SELECT * FROM `po_list` order by `date_created` asc");
+							while($row = $po_qry->fetch_assoc()):
+						?>
+						<option value="<?php echo $row['id'] ?>" <?php echo isset($po_id) && $po_id == $row['id'] ? 'selected' : '' ?>><?php echo $row['po_no'] ?></option>
+						<?php endwhile; ?>
+					</select>
+				</div>
+				<div class="col-md-6 form-group">
+					<label for="ro_no">RO # <span class="po_err_msg text-danger"></span></label>
+					<input type="text" class="form-control form-control-sm rounded-0" id="ro_no" name="ro_no" value="<?php echo isset($ro_no) ? $ro_no : '' ?>">
+					<small><i>Leave this blank to Automatically Generate upon saving.</i></small>
+				</div>
 				<div class="col-md-4 form-group">
 					<label for="project_id">Project</label>
 					<select name="project_id" id="project_id" class="custom-select custom-select-sm rounded-0 select2" onchange="selectProject(this)">
@@ -77,9 +94,8 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 					</select>
 				</div>
 				<div class="col-md-4 form-group">
-					<label for="po_no">PO # <span class="po_err_msg text-danger"></span></label>
-					<input type="text" class="form-control form-control-sm rounded-0" id="po_no" name="po_no" value="<?php echo isset($po_no) ? $po_no : '' ?>">
-					<small><i>Leave this blank to Automatically Generate upon saving.</i></small>
+					<label for="packing_slip_no">Packing Slip Number</label>
+					<input type="text" class="form-control form-control-sm rounded-0" id="packing_slip_no" name="packing_slip_no" value="<?php echo isset($packing_slip_no) ? $packing_slip_no : '' ?>">
 				</div>
 				<div class="col-md-8 form-group">
 					<label for="delivery_address" class="control-label">Delivery Address</label>
@@ -97,14 +113,16 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 							<col width="5%">
 							<col width="5%">
 							<col width="10%">
+							<col width="10%">
 							<col width="20%">
-							<col width="30%">
+							<col width="20%">
 							<col width="30%">
 						</colgroup>
 						<thead>
 							<tr class="bg-navy disabled">
 								<th class="px-1 py-1 text-center"></th>
 								<th class="px-1 py-1 text-center">Qty</th>
+								<th class="px-1 py-1 text-center">Received Qty</th>
 								<th class="px-1 py-1 text-center">Unit</th>
 								<th class="px-1 py-1 text-center">Item</th>
 								<th class="px-1 py-1 text-center">Price</th>
@@ -114,7 +132,7 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 						<tbody>
 							<?php 
 							if(isset($id)):
-							$order_items_qry = $conn->query("SELECT o.*,i.name FROM `order_items` o inner join item_list i on o.item_id = i.id where o.`po_id` = '$id' ");
+							$order_items_qry = $conn->query("SELECT o.*,i.name FROM `receive_order_items` o inner join item_list i on o.item_id = i.id where o.`ro_id` = '$id' ");
 							echo $conn->error;
 							$i = 1;
 							while($row = $order_items_qry->fetch_assoc()):
@@ -125,6 +143,9 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 								</td>
 								<td class="align-middle p-0 text-center">
 									<input type="number" class="text-center w-100 border-0" step="any" name="qty[]" value="<?php echo $row['quantity'] ?>"/>
+								</td>
+								<td class="align-middle p-0 text-center">
+									<input type="number" class="text-center w-100 border-0" step="any" name="received_qty[]" value="<?php echo $row['received_qty'] ?>"/>
 								</td>
 								<td class="align-middle p-1 item-unit">
 									<input type="text" class="text-center w-100 border-0" name="unit[]" value="<?php echo $row['unit'] ?>"/>
@@ -152,17 +173,17 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 						<tfoot>
 							<tr class="bg-lightblue">
 								<tr>
-									<th class="p-1 text-right" colspan="5"><span><button class="btn btn btn-sm btn-flat btn-primary py-0 mx-1" type="button" id="add_row">Add Row</button></span> Sub Total</th>
+									<th class="p-1 text-right" colspan="6"><span><button class="btn btn btn-sm btn-flat btn-primary py-0 mx-1" type="button" id="add_row">Add Row</button></span> Sub Total</th>
 									<th class="p-1 text-right" id="sub_total">0</th>
 								</tr>
 								<tr>
-									<th class="p-1 text-right" colspan="5">Discount (%)
+									<th class="p-1 text-right" colspan="6">Discount (%)
 									<input type="number" step="any" name="discount_percentage" class="border-light text-right" value="<?php echo isset($discount_percentage) ? $discount_percentage : 0 ?>">
 									</th>
 									<th class="p-1"><input type="text" class="w-100 border-0 text-right" readonly value="<?php echo isset($discount_amount) ? $discount_amount : 0 ?>" name="discount_amount"></th>
 								</tr>
 								<tr>
-									<th class="p-1 text-right" colspan="5">Tax Inclusive (%)
+									<th class="p-1 text-right" colspan="6">Tax Inclusive (%)
 										<select class="form-control form-control-sm rounded-0 taxcode" onchange="selectTaxcode(this)">
 											<option value="" disabled selected>Select Taxcode</option>
 											<?php 
@@ -177,7 +198,7 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 									<th class="p-1"><input type="text" class="w-100 border-0 text-right" readonly value="<?php echo isset($tax_amount) ? $tax_amount : 0 ?>" name="tax_amount"></th>
 								</tr>
 								<tr>
-									<th class="p-1 text-right" colspan="5">Total</th>
+									<th class="p-1 text-right" colspan="6">Total</th>
 									<th class="p-1 text-right" id="total">0</th>
 								</tr>
 							</tr>
@@ -203,7 +224,7 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 	</div>
 	<div class="card-footer">
 		<button class="btn btn-flat btn-primary" form="po-form">Save</button>
-		<a class="btn btn-flat btn-default" href="?page=purchase_orders">Cancel</a>
+		<a class="btn btn-flat btn-default" href="?page=receive_orders">Cancel</a>
 	</div>
 </div>
 <table class="d-none" id="item-clone">
@@ -234,8 +255,10 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 		<td class="align-middle p-1 text-right total-price">0</td>
 	</tr>
 </table>
+
 <script>
 	var project_addresses = <?php echo json_encode($project_addresses); ?>;
+
 	var items = <?php
 		$item_qry = $conn->query("SELECT * FROM `item_list` order by `name` asc");
 		$items = [];
@@ -341,7 +364,7 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 			}
 			start_loader();
 			$.ajax({
-				url:_base_url_+"classes/Master.php?f=save_po",
+				url:_base_url_+"classes/Master.php?f=save_ro",
 				data: new FormData($(this)[0]),
                 cache: false,
                 contentType: false,
@@ -356,7 +379,7 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 				},
 				success:function(resp){
 					if(typeof resp =='object' && resp.status == 'success'){
-						location.href = "./?page=purchase_orders/view_po&id="+resp.id;
+						location.href = "./?page=receive_orders/view_ro&id="+resp.id;
 					}else if((resp.status == 'failed' || resp.status == 'po_failed') && !!resp.msg){
                         var el = $('<div>')
                             el.addClass("alert alert-danger err-msg").text(resp.msg)
@@ -399,5 +422,88 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 	function selectTaxcode(el) {
 		$(el).closest('tr').find('input[name=tax_percentage]').val($(el).val());
 		calculate()
+	}
+
+	function selectPurchaseOrder(el) {
+		$.ajax({
+			url:_base_url_+"classes/Master.php?f=search_po",
+			method:'POST',
+			data:{id: $(el).val()},
+			dataType:'json',
+			error:err=>{
+				console.log(err)
+			},
+			success:function(resp){
+				updateOrderDetail(resp)
+			}
+		})
+	}
+
+	function updateOrderDetail(data) {
+		const { project_id, supplier_id, delivery_address, delivery_date, order_items, discount_amount,
+			discount_percentage, notes, status, tax_amount, tax_percentage } = data;
+			console.log(data)
+		$('#project_id').val(project_id);
+		$('#supplier_id').val(supplier_id);
+		$('#delivery_address').val(delivery_address);
+		$('#delivery_date').val(moment(delivery_date).format("yyyy-MM-DD"));
+		$('#notes').val(notes);
+		$('#status').val(status);
+		$('input[name=discount_percentage]').val(discount_percentage);
+		$('input[name=discount_amount]').val(discount_amount);
+		$('input[name=tax_percentage]').val(tax_percentage);
+		$('input[name=tax_amount]').val(tax_amount);
+
+		$('#item-list tbody').html('');
+
+		order_items.forEach((order_item, index) => {
+			let options = ''
+			items.forEach(item => {
+				options += `<option value="${item.id}" ${order_item.item_id === item.id ? "selected" :''}>
+					${item.name}
+				</option>`
+			});
+
+			$('#item-list tbody').append(`
+				<tr class="po-item" data-id="">
+					<td class="align-middle p-1 text-center">
+						<button class="btn btn-sm btn-danger py-0" type="button" onclick="rem_item($(this))"><i class="fa fa-times"></i></button>
+					</td>
+					<td class="align-middle p-0 text-center">
+						<input type="number" class="text-center w-100 border-0" step="any" name="qty[]" value="${order_item.quantity}"/>
+					</td>
+					<td class="align-middle p-0 text-center">
+						<input type="number" class="text-center w-100 border-0" step="any" name="received_qty[]" value="0"/>
+					</td>
+					<td class="align-middle p-1 item-unit">
+						<input type="text" class="text-center w-100 border-0" name="unit[]" value="${order_item.unit}"/>
+					</td>
+					<td class="align-middle p-1 item-select">
+						<select name="item_id[]" id="itemselect${index}" class="custom-select custom-select-sm rounded-0 select2" onchange="selectItem(this)">
+							<option value="" disabled></option>
+							${options}
+						</select>
+					</td>
+					<td class="align-middle p-1 unit-price">
+						<input type="number" step="any" class="text-right w-100 border-0" name="unit_price[]"  value="${order_item.unit_price}"/>
+					</td>
+					<td class="align-middle p-1 text-right total-price">${order_item.quantity * order_item.unit_price}</td>
+				</tr>
+			`)
+		});
+
+		$('.select2').select2({placeholder:"Please Select here",width:"relative"})
+		calculate();
+
+		$('#item-list .po-item').each(function(){
+			var tr = $(this)
+			tr.find('[name="qty[]"],[name="unit_price[]"]').on('input keypress',function(e){
+				calculate()
+			})
+			$('#item-list tfoot').find('[name="discount_percentage"],[name="tax_percentage"]').on('input keypress',function(e){
+				calculate()
+			})
+			tr.find('[name="qty[]"],[name="unit_price[]"]').trigger('keypress')
+		})
 	}
 </script>

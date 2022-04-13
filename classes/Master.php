@@ -499,10 +499,101 @@ Class Master extends DBConnection {
 	}
 	function delete_po(){
 		extract($_POST);
-		$del = $this->conn->query("DELETE FROM `po_list` where unit_id = '{$id}'");
+		$del = $this->conn->query("DELETE FROM `po_list` where id = '{$id}'");
 		if($del){
 			$resp['status'] = 'success';
 			$this->settings->set_flashdata('success',"Purchase Order successfully deleted.");
+		}else{
+			$resp['status'] = 'failed';
+			$resp['error'] = $this->conn->error;
+		}
+		return json_encode($resp);
+
+	}
+	function search_po(){
+		extract($_POST);
+		$qry = $this->conn->query("SELECT * FROM po_list where id = '{$id}'");
+		$data = array();
+		while($row = $qry->fetch_assoc()){
+			$data = $row;
+		}
+
+		$order_items = [];
+		$order_items_qry = $this->conn->query("SELECT o.*,i.name FROM `order_items` o inner join item_list i on o.item_id = i.id where o.`po_id` = '$id' ");
+		while($row = $order_items_qry->fetch_assoc()){
+			$order_items[] = $row;
+		}
+		$data['order_items'] = $order_items;
+		return json_encode($data);
+	}
+	function save_ro(){
+		extract($_POST);
+		$data = "";
+		foreach($_POST as $k =>$v){
+			if(in_array($k,array('discount_amount','tax_amount')))
+				$v= str_replace(',','',$v);
+			if(!in_array($k,array('id','ro_no')) && !is_array($_POST[$k])){
+				$v = addslashes(trim($v));
+				if(!empty($data)) $data .=",";
+				$data .= " `{$k}`='{$v}' ";
+			}
+		}
+		if(!empty($ro_no)){
+			$check = $this->conn->query("SELECT * FROM `ro_list` where `ro_no` = '{$ro_no}' ".($id > 0 ? " and id != '{$id}' ":""))->num_rows;
+			if($this->capture_err())
+				return $this->capture_err();
+			if($check > 0){
+				$resp['status'] = 'ro_failed';
+				$resp['msg'] = "Receive Order Number already exist.";
+				return json_encode($resp);
+				exit;
+			}
+		}else{
+			$ro_no ="";
+			while(true){
+				$ro_no = "RO-".(sprintf("%'.011d", mt_rand(1,99999999999)));
+				$check = $this->conn->query("SELECT * FROM `ro_list` where `ro_no` = '{$ro_no}'")->num_rows;
+				if($check <= 0)
+				break;
+			}
+		}
+		$data .= ", ro_no = '{$ro_no}' ";
+
+		if(empty($id)){
+			$sql = "INSERT INTO `ro_list` set {$data} ";
+		}else{
+			$sql = "UPDATE `ro_list` set {$data} where id = '{$id}' ";
+		}
+		$save = $this->conn->query($sql);
+		if($save){
+			$resp['status'] = 'success';
+			$ro_id = empty($id) ? $this->conn->insert_id : $id ;
+			$resp['id'] = $ro_id;
+			$data = "";
+			foreach($item_id as $k =>$v){
+				if(!empty($data)) $data .=",";
+				$data .= "('{$ro_id}','{$v}','{$unit[$k]}','{$unit_price[$k]}','{$qty[$k]}','{$received_qty[$k]}')";
+			}
+			if(!empty($data)){
+				$this->conn->query("DELETE FROM `receive_order_items` where ro_id = '{$ro_id}'");
+				$save = $this->conn->query("INSERT INTO `receive_order_items` (`ro_id`,`item_id`,`unit`,`unit_price`,`quantity`,`received_qty`) VALUES {$data} ");
+			}
+			if(empty($id))
+				$this->settings->set_flashdata('success',"Receive Order successfully saved.");
+			else
+				$this->settings->set_flashdata('success',"Receive Order successfully updated.");
+		}else{
+			$resp['status'] = 'failed';
+			$resp['err'] = $this->conn->error."[{$sql}]";
+		}
+		return json_encode($resp);
+	}
+	function delete_ro(){
+		extract($_POST);
+		$del = $this->conn->query("DELETE FROM `ro_list` where id = '{$id}'");
+		if($del){
+			$resp['status'] = 'success';
+			$this->settings->set_flashdata('success',"Receive Order successfully deleted.");
 		}else{
 			$resp['status'] = 'failed';
 			$resp['error'] = $this->conn->error;
@@ -694,6 +785,15 @@ switch ($action) {
 	break;
 	case 'delete_po':
 		echo $Master->delete_po();
+	break;
+	case 'search_po':
+		echo $Master->search_po();
+	break;
+	case 'save_ro':
+		echo $Master->save_ro();
+	break;
+	case 'delete_ro':
+		echo $Master->delete_ro();
 	break;
 	case 'get_price':
 		echo $Master->get_price();

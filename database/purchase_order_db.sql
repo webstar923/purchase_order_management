@@ -148,6 +148,61 @@ insert  into `project_list`(`id`,`name`,`address`,`contact`,`description`,`date_
 (1,'Project 1','Supplier 102 Address, 23rd St, Sample City, Test Province, ####','3','Project1 Description','2022-04-11 18:20:38'),
 (2,'Project 2','Supplie Address, rovince, ####','1,3','','2022-04-12 11:29:26');
 
+/*Table structure for table `receive_order_items` */
+
+DROP TABLE IF EXISTS `receive_order_items`;
+
+CREATE TABLE `receive_order_items` (
+  `ro_id` int(30) NOT NULL,
+  `item_id` int(11) NOT NULL,
+  `unit` varchar(50) NOT NULL,
+  `unit_price` float NOT NULL,
+  `quantity` float NOT NULL,
+  `received_qty` float NOT NULL,
+  KEY `item_no` (`item_id`),
+  KEY `ro_id` (`ro_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+/*Data for the table `receive_order_items` */
+
+insert  into `receive_order_items`(`ro_id`,`item_id`,`unit`,`unit_price`,`quantity`,`received_qty`) values 
+(2,1,'boxes',15000,10,5),
+(2,2,'pcs',17999.9,6,6),
+(2,1,'boxes',123.22,1,0),
+(2,1,'boxes',123.22,1,0),
+(3,1,'pcs',3788.99,10,0);
+
+/*Table structure for table `ro_list` */
+
+DROP TABLE IF EXISTS `ro_list`;
+
+CREATE TABLE `ro_list` (
+  `id` int(30) NOT NULL AUTO_INCREMENT,
+  `ro_no` varchar(250) NOT NULL,
+  `packing_slip_no` varchar(250) NOT NULL,
+  `po_id` int(30) NOT NULL,
+  `project_id` int(30) NOT NULL,
+  `supplier_id` int(30) NOT NULL,
+  `discount_percentage` float NOT NULL,
+  `discount_amount` float NOT NULL,
+  `tax_percentage` float NOT NULL,
+  `tax_amount` float NOT NULL,
+  `notes` text NOT NULL,
+  `delivery_address` text NOT NULL,
+  `delivery_date` datetime DEFAULT NULL,
+  `status` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0=pending, 1= Approved, 2 = Denied',
+  `date_created` datetime NOT NULL DEFAULT current_timestamp(),
+  `date_updated` datetime DEFAULT NULL ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `supplier_id` (`supplier_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
+
+/*Data for the table `ro_list` */
+
+insert  into `ro_list`(`id`,`ro_no`,`packing_slip_no`,`po_id`,`project_id`,`supplier_id`,`discount_percentage`,`discount_amount`,`tax_percentage`,`tax_amount`,`notes`,`delivery_address`,`delivery_date`,`status`,`date_created`,`date_updated`) values 
+(2,'RO-52416750133','test123333',1,1,2,2,5164.92,12,30989.5,'Sample Purchase Order Only','Supplier 102 Address, 23rd St, Sample City, Test Province, ####','2022-04-12 00:00:00',1,'2022-04-13 07:20:06','2022-04-13 07:39:24'),
+(3,'RO-91062596685','test123333',2,0,2,1,378.899,12,4546.79,'Sample','','2022-04-06 00:00:00',0,'2022-04-13 08:07:50',NULL);
+
 /*Table structure for table `sc_list` */
 
 DROP TABLE IF EXISTS `sc_list`;

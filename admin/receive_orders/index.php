@@ -5,9 +5,9 @@
 <?php endif;?>
 <div class="card card-outline card-primary">
 	<div class="card-header">
-		<h3 class="card-title">List of Purchase Orders</h3>
+		<h3 class="card-title">List of Receive Orders</h3>
 		<div class="card-tools">
-			<a href="?page=purchase_orders/manage_po" class="btn btn-flat btn-primary"><span class="fas fa-plus"></span>  Create New</a>
+			<a href="?page=receive_orders/manage_ro" class="btn btn-flat btn-primary"><span class="fas fa-plus"></span>  Create New</a>
 		</div>
 	</div>
 	<div class="card-body">
@@ -16,9 +16,10 @@
 			<table class="table table-hover table-striped">
 				<colgroup>
 					<col width="5%">
+					<col width="10%">
 					<col width="15%">
 					<col width="15%">
-					<col width="20%">
+					<col width="10%">
 					<col width="10%">
 					<col width="15%">
 					<col width="10%">
@@ -28,6 +29,7 @@
 					<tr class="bg-navy disabled">
 						<th>#</th>
 						<th>Date Created</th>
+						<th>RO #</th>
 						<th>PO #</th>
 						<th>Supplier</th>
 						<th>Items</th>
@@ -39,14 +41,21 @@
 				<tbody>
 					<?php 
 					$i = 1;
-						$qry = $conn->query("SELECT po.*, s.name as sname FROM `po_list` po inner join `supplier_list` s on po.supplier_id = s.id order by unix_timestamp(po.date_updated) ");
+						$qry = $conn->query(
+							"SELECT ro.*, s.name as sname, po.po_no 
+							FROM `ro_list` ro 
+							inner join `po_list` po on ro.po_id = po.id 
+							inner join `supplier_list` s on ro.supplier_id = s.id 
+							order by unix_timestamp(ro.date_updated) "
+						);
 						while($row = $qry->fetch_assoc()):
-							$row['item_count'] = $conn->query("SELECT * FROM order_items where po_id = '{$row['id']}'")->num_rows;
-							$row['total_amount'] = $conn->query("SELECT sum(quantity * unit_price) as total FROM order_items where po_id = '{$row['id']}'")->fetch_array()['total'];
+							$row['item_count'] = $conn->query("SELECT * FROM receive_order_items where ro_id = '{$row['id']}'")->num_rows;
+							$row['total_amount'] = $conn->query("SELECT sum(quantity * unit_price) as total FROM receive_order_items where ro_id = '{$row['id']}'")->fetch_array()['total'];
 					?>
 						<tr>
 							<td class="text-center"><?php echo $i++; ?></td>
 							<td class=""><?php echo date("M d,Y H:i",strtotime($row['date_created'])) ; ?></td>
+							<td class=""><?php echo $row['ro_no'] ?></td>
 							<td class=""><?php echo $row['po_no'] ?></td>
 							<td class=""><?php echo $row['sname'] ?></td>
 							<td><?php echo number_format($row['item_count']) ?></td>
@@ -72,9 +81,9 @@
 				                    <span class="sr-only">Toggle Dropdown</span>
 				                  </button>
 				                  <div class="dropdown-menu" role="menu">
-								  	<a class="dropdown-item" href="?page=purchase_orders/view_po&id=<?php echo $row['id'] ?>"><span class="fa fa-eye text-primary"></span> View</a>
+								  	<a class="dropdown-item" href="?page=receive_orders/view_ro&id=<?php echo $row['id'] ?>"><span class="fa fa-eye text-primary"></span> View</a>
 				                    <div class="dropdown-divider"></div>
-				                    <a class="dropdown-item" href="?page=purchase_orders/manage_po&id=<?php echo $row['id'] ?>"><span class="fa fa-edit text-primary"></span> Edit</a>
+				                    <a class="dropdown-item" href="?page=receive_orders/manage_ro&id=<?php echo $row['id'] ?>"><span class="fa fa-edit text-primary"></span> Edit</a>
 				                    <div class="dropdown-divider"></div>
 				                    <a class="dropdown-item delete_data" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>"><span class="fa fa-trash text-danger"></span> Delete</a>
 				                  </div>
@@ -90,15 +99,15 @@
 <script>
 	$(document).ready(function(){
 		$('.delete_data').click(function(){
-			_conf("Are you sure to delete this order permanently?","delete_po",[$(this).attr('data-id')])
+			_conf("Are you sure to delete this order permanently?","delete_ro",[$(this).attr('data-id')])
 		})
 		$('.table th,.table td').addClass('px-1 py-0 align-middle')
 		$('.table').dataTable();
 	})
-	function delete_po($id){
+	function delete_ro($id){
 		start_loader();
 		$.ajax({
-			url:_base_url_+"classes/Master.php?f=delete_po",
+			url:_base_url_+"classes/Master.php?f=delete_ro",
 			method:"POST",
 			data:{id: $id},
 			dataType:"json",

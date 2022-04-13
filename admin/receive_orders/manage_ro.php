@@ -73,9 +73,9 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 						<option value="" disabled <?php echo !isset($project_id) ? "selected" :'' ?>></option>
 						<?php 
 							$project_qry = $conn->query("SELECT * FROM `project_list` order by `name` asc");
-							$project_addresses = array();
+							$projects = [];
 							while($row = $project_qry->fetch_assoc()):
-								$project_addresses[$row['id']] = $row['address']
+								$projects[] = $row;
 						?>
 						<option value="<?php echo $row['id'] ?>" <?php echo isset($project_id) && $project_id == $row['id'] ? 'selected' : '' ?>><?php echo $row['name'] ?></option>
 						<?php endwhile; ?>
@@ -260,7 +260,7 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 </table>
 
 <script>
-	var project_addresses = <?php echo json_encode($project_addresses); ?>;
+	var projects = <?php echo json_encode($projects); ?>;
 
 	var items = <?php
 		$item_qry = $conn->query("SELECT * FROM `item_list` order by `name` asc");
@@ -406,7 +406,9 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 	})
 
 	function selectProject(el) {
-		$('#delivery_address').val(project_addresses[$(el).val()]);
+		let project = projects.find(p => p.id === $(el).val())
+		$('#delivery_address').val(project.address);
+		$('#notes').val(project.description);
 	}
 
 	function selectItem(el) {

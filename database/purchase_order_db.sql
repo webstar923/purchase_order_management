@@ -63,15 +63,13 @@ CREATE TABLE `item_list` (
   `uom_id` int(30) NOT NULL,
   `date_created` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;
 
 /*Data for the table `item_list` */
 
 insert  into `item_list`(`id`,`code`,`name`,`category_id`,`costcode_id`,`uom_id`,`date_created`) values 
-(1,'','Item 3',1,1,1,'2021-09-08 10:22:10'),
-(2,'','Item 4',2,1,1,'2022-04-11 18:17:30'),
-(3,'testcode','Test Item',1,1,2,'2022-04-12 08:21:16'),
-(4,'testcode','Test Itemdddd',1,1,1,'2022-04-12 08:57:06');
+(1,'item0001','Item1',1,1,1,'2022-04-13 12:41:10'),
+(2,'item0002','Item2',1,1,2,'2022-04-13 12:41:32');
 
 /*Table structure for table `order_items` */
 
@@ -81,21 +79,22 @@ CREATE TABLE `order_items` (
   `po_id` int(30) NOT NULL,
   `item_id` int(11) NOT NULL,
   `unit` varchar(50) NOT NULL,
+  `costcode` varchar(50) NOT NULL,
   `unit_price` float NOT NULL,
   `quantity` float NOT NULL,
+  `taxcode_id` int(11) NOT NULL,
   KEY `po_id` (`po_id`),
   KEY `item_no` (`item_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 /*Data for the table `order_items` */
 
-insert  into `order_items`(`po_id`,`item_id`,`unit`,`unit_price`,`quantity`) values 
-(2,1,'pcs',3788.99,10),
-(3,1,'boxes',123.22,1),
-(1,1,'boxes',15000,10),
-(1,2,'pcs',17999.9,6),
-(1,1,'boxes',123.22,1),
-(1,1,'boxes',123.22,1);
+insert  into `order_items`(`po_id`,`item_id`,`unit`,`costcode`,`unit_price`,`quantity`,`taxcode_id`) values 
+(1,1,'boxes','012',100,10,1),
+(1,2,'pcs','011',50,5,0),
+(2,1,'boxes','012233',50,10,1),
+(3,1,'boxes','test',10,1,1),
+(4,2,'pcs','012233',100,1,0);
 
 /*Table structure for table `po_list` */
 
@@ -119,14 +118,15 @@ CREATE TABLE `po_list` (
   PRIMARY KEY (`id`),
   KEY `supplier_id` (`supplier_id`),
   CONSTRAINT `po_list_ibfk_1` FOREIGN KEY (`supplier_id`) REFERENCES `supplier_list` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;
 
 /*Data for the table `po_list` */
 
 insert  into `po_list`(`id`,`po_no`,`project_id`,`supplier_id`,`discount_percentage`,`discount_amount`,`tax_percentage`,`tax_amount`,`notes`,`delivery_address`,`delivery_date`,`status`,`date_created`,`date_updated`) values 
-(1,'PO-94619964639',1,2,2,5164.92,12,30989.5,'Sample Purchase Order Only','Supplier 102 Address, 23rd St, Sample City, Test Province, ####','2022-04-12 00:00:00',1,'2021-09-08 15:20:57','2022-04-12 17:10:46'),
-(2,'PO-92093417806',0,2,1,378.899,12,4546.79,'Sample','',NULL,0,'2021-09-08 15:49:55','2021-09-08 16:03:16'),
-(3,'PO-35738915622',2,2,10,12.322,33,40.663,'Test order','Supplie Address, rovince, ####','2022-04-13 00:00:00',1,'2022-04-12 16:35:39',NULL);
+(1,'0001-0001',1,2,50,790,10,158,'Test Project 1 Description','123 Amapola Ave, Pacifica, CA 94044, USA','2022-04-12 00:00:00',1,'2022-04-14 09:48:46','2022-04-14 11:44:36'),
+(2,'0001-0002',1,2,0,0,0,0,'Test Project 1 Description','123 Amapola Ave, Pacifica, CA 94044, USA','2022-04-13 00:00:00',0,'2022-04-14 11:46:26',NULL),
+(3,'0002-abc',2,1,0,0,0,0,'wf','df','2022-03-29 00:00:00',0,'2022-04-14 11:47:15',NULL),
+(4,'0002-0001',2,2,50,50,0,0,'wf','df','2022-04-06 00:00:00',1,'2022-04-14 11:48:01',NULL);
 
 /*Table structure for table `project_list` */
 
@@ -134,6 +134,7 @@ DROP TABLE IF EXISTS `project_list`;
 
 CREATE TABLE `project_list` (
   `id` int(30) NOT NULL AUTO_INCREMENT,
+  `project_no` varchar(250) NOT NULL,
   `name` varchar(250) NOT NULL,
   `address` text NOT NULL,
   `contact` varchar(250) NOT NULL,
@@ -144,9 +145,9 @@ CREATE TABLE `project_list` (
 
 /*Data for the table `project_list` */
 
-insert  into `project_list`(`id`,`name`,`address`,`contact`,`description`,`date_created`) values 
-(1,'Project 1','Supplier 102 Address, 23rd St, Sample City, Test Province, ####','3','Project1 Description','2022-04-11 18:20:38'),
-(2,'Project 2','Supplie Address, rovince, ####','1,3','','2022-04-12 11:29:26');
+insert  into `project_list`(`id`,`project_no`,`name`,`address`,`contact`,`description`,`date_created`) values 
+(1,'0001','Project 1','123 Amapola Ave, Pacifica, CA 94044, USA','1,3','Test Project 1 Description','2022-04-13 12:33:41'),
+(2,'0002','Project 2','df','1','wf','2022-04-14 07:17:06');
 
 /*Table structure for table `receive_order_items` */
 
@@ -155,8 +156,6 @@ DROP TABLE IF EXISTS `receive_order_items`;
 CREATE TABLE `receive_order_items` (
   `ro_id` int(30) NOT NULL,
   `item_id` int(11) NOT NULL,
-  `unit` varchar(50) NOT NULL,
-  `unit_price` float NOT NULL,
   `quantity` float NOT NULL,
   `received_qty` float NOT NULL,
   KEY `item_no` (`item_id`),
@@ -165,12 +164,10 @@ CREATE TABLE `receive_order_items` (
 
 /*Data for the table `receive_order_items` */
 
-insert  into `receive_order_items`(`ro_id`,`item_id`,`unit`,`unit_price`,`quantity`,`received_qty`) values 
-(2,1,'boxes',15000,10,5),
-(2,2,'pcs',17999.9,6,6),
-(2,1,'boxes',123.22,1,0),
-(2,1,'boxes',123.22,1,0),
-(3,1,'pcs',3788.99,10,0);
+insert  into `receive_order_items`(`ro_id`,`item_id`,`quantity`,`received_qty`) values 
+(1,1,10,10),
+(1,2,5,5),
+(2,1,10,3);
 
 /*Table structure for table `ro_list` */
 
@@ -181,27 +178,17 @@ CREATE TABLE `ro_list` (
   `ro_no` varchar(250) NOT NULL,
   `packing_slip_no` varchar(250) NOT NULL,
   `po_id` int(30) NOT NULL,
-  `project_id` int(30) NOT NULL,
-  `supplier_id` int(30) NOT NULL,
-  `discount_percentage` float NOT NULL,
-  `discount_amount` float NOT NULL,
-  `tax_percentage` float NOT NULL,
-  `tax_amount` float NOT NULL,
-  `notes` text NOT NULL,
-  `delivery_address` text NOT NULL,
-  `delivery_date` datetime DEFAULT NULL,
-  `status` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0=pending, 1= Approved, 2 = Denied',
+  `status` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0=Not Received, 1=Partially Received,\r\n2=Fully Received',
   `date_created` datetime NOT NULL DEFAULT current_timestamp(),
   `date_updated` datetime DEFAULT NULL ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `supplier_id` (`supplier_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;
 
 /*Data for the table `ro_list` */
 
-insert  into `ro_list`(`id`,`ro_no`,`packing_slip_no`,`po_id`,`project_id`,`supplier_id`,`discount_percentage`,`discount_amount`,`tax_percentage`,`tax_amount`,`notes`,`delivery_address`,`delivery_date`,`status`,`date_created`,`date_updated`) values 
-(2,'RO-52416750133','test123333',1,1,2,2,5164.92,12,30989.5,'Sample Purchase Order Only','Supplier 102 Address, 23rd St, Sample City, Test Province, ####','2022-04-12 00:00:00',1,'2022-04-13 07:20:06','2022-04-13 07:39:24'),
-(3,'RO-91062596685','test123333',2,0,2,1,378.899,12,4546.79,'Sample','','2022-04-06 00:00:00',0,'2022-04-13 08:07:50',NULL);
+insert  into `ro_list`(`id`,`ro_no`,`packing_slip_no`,`po_id`,`status`,`date_created`,`date_updated`) values 
+(1,'0001-0001-0001','',1,2,'2022-04-14 16:55:19','2022-04-14 17:48:40'),
+(2,'0001-0002-0001','test123333',2,1,'2022-04-14 17:40:59','2022-04-14 17:50:03');
 
 /*Table structure for table `sc_list` */
 
@@ -299,8 +286,8 @@ CREATE TABLE `uom_list` (
 /*Data for the table `uom_list` */
 
 insert  into `uom_list`(`id`,`name`,`date_created`) values 
-(1,'boxes','2022-04-12 06:19:54'),
-(2,'pcs','2022-04-12 15:40:14');
+(1,'boxes','2022-04-14 16:51:49'),
+(2,'pcs','2022-04-14 16:51:54');
 
 /*Table structure for table `users` */
 

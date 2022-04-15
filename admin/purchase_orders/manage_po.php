@@ -156,7 +156,7 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 									</select>
 								</td>
 								<td class="align-middle p-1 item-select">
-									<select id="<?php echo "itemselect_".$i++ ?>" class="custom-select custom-select-sm rounded-0 select2" onchange="selectItem(this)">
+									<select id="<?php echo "itemselect_".$i++ ?>" class="custom-select custom-select-sm rounded-0 select2" onchange="selectItem(this)" disabled>
 										<option value="" disabled <?php echo !isset($row['name']) ? "selected" :'' ?>></option>
 										<?php 
 											$item_qry = $conn->query("SELECT * FROM `item_list` order by `name` asc");
@@ -178,7 +178,7 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 									<input type="text" class="text-center w-100 border-0" name="unit[]" value="<?php echo $row['unit'] ?>"/>
 								</td>
 								<td class="align-middle p-1 unit-price">
-									<input type="number" step="any" class="text-right w-100 border-0" name="unit_price[]"  value="<?php echo ($row['unit_price']) ?>"/>
+									<input type="number" step="any" class="text-right w-100 border-0" name="unit_price[]" data-item-id="<?php echo ($row['item_id']) ?>"  value="<?php echo ($row['unit_price']) ?>"/>
 								</td>
 								<td class="align-middle p-1">
 									<select name="taxcode_id[]" class="custom-select custom-select-sm rounded-0 text-center" onchange="calculate()">
@@ -198,7 +198,7 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 						<tfoot>
 							<tr class="bg-lightblue">
 								<tr>
-									<th class="p-1 text-right" colspan="8"><span><button class="btn btn btn-sm btn-flat btn-primary py-0 mx-1" type="button" id="add_row">Add Row</button></span> Sub Total</th>
+									<th class="p-1 text-right" colspan="8"><span><button class="btn btn btn-sm btn-flat btn-primary py-0 mx-1" type="button" id="add_row" disabled>Add Row</button></span> Sub Total</th>
 									<th class="p-1 text-right" id="sub_total">0</th>
 								</tr>
 								<tr>
@@ -235,7 +235,7 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 			<button class="btn btn-sm btn-danger py-0" type="button" onclick="rem_item($(this))"><i class="fa fa-times"></i></button>
 		</td>
 		<td class="align-middle p-1 item-select">
-			<select name="item_id[]" class="custom-select custom-select-sm rounded-0 item-select2" onchange="selectItem(this)">
+			<select disabled name="item_id[]" class="custom-select custom-select-sm rounded-0 item-select2" onchange="selectItem(this)">
                 <option value="" disabled selected></option>
                 <?php 
 					$item_qry = $conn->query("SELECT * FROM `item_list` order by `code` asc");
@@ -246,7 +246,7 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
             </select>
 		</td>
 		<td class="align-middle p-1 item-select">
-			<select class="custom-select custom-select-sm rounded-0 item-select2" onchange="selectItem(this)">
+			<select disabled class="custom-select custom-select-sm rounded-0 item-select2" onchange="selectItem(this)">
                 <option value="" disabled selected></option>
                 <?php 
 					$item_qry = $conn->query("SELECT * FROM `item_list` order by `name` asc");
@@ -283,6 +283,7 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 	</tr>
 </table>
 <script>
+	var _total = 0
 	var projects = <?php echo json_encode($projects); ?>;
 
 	var items = <?php
@@ -334,8 +335,8 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 	function rem_item(_this){
 		_this.closest('tr').remove()
 	}
-	function calculate(){
-		var _total = 0
+	function calculate(){	
+		_total = 0	
 		$('.po-item').each(function(){
 			var qty = $(this).find("[name='qty[]']").val()
 			var unit_price = $(this).find("[name='unit_price[]']").val()
@@ -403,9 +404,20 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 		}
 
         $('.select2').select2({placeholder:"Please Select here",width:"relative"})
+		function hasValidError(){
+			const errors = []
+			if(!$("#project_id").val()) errors.push("Project ID is requried")
+			if(_total==0) errors.push("items are requried")
+			return errors.join('\n')
 
+		}
 		$('#po-form').submit(function(e){
 			e.preventDefault();
+			const error_message = hasValidError()
+			if(error_message){
+				alert_toast("ValidationError\n"+ error_message,'error');
+				return
+			}
             var _this = $(this)
 			$('.err-msg').remove();
 			$('[name="po_no"]').removeClass('border-danger')
@@ -462,20 +474,47 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 		var item = items.find(i => i.id === $(el).val())
 		var unit = units.find(u => u.id === item.uom_id)
 		$(el).closest('tr').find('.item-unit input').val(unit.name)
+		const dom_price  = $(el).closest('tr').find('.unit-price input')
+		dom_price.data('item-id', $(el).val())
 
 		var costcode = costcodes.find(u => u.id === item.costcode_id)
 		$(el).closest('tr').find('.item-costcode input').val(costcode.name)
 
 		var catalog = catalogs.find(c => c.item_id === item.id && c.supplier_id === $('#supplier_id').val());
 		if (catalog) {
-			$(el).closest('tr').find('.unit-price input').val(catalog.price)
+			dom_price.val(catalog.price)
 			calculate()
 		} else {
-			$(el).closest('tr').find('.unit-price input').val(0)
+			dom_price.val(0)
 			calculate()
 		}
 
 		$(el).closest('tr').find('.item-select select').val($(el).val())
 		$(el).closest('tr').find('.item-select2').select2({placeholder:"Please Select here",width:"relative"})
 	}
+	function setActice(){
+		const supplier_id = $("#supplier_id").val()
+		if (supplier_id){
+			$('table .custom-select').removeAttr("disabled")
+			$('#add_row').removeAttr("disabled")
+		}
+		return supplier_id
+	}
+
+	$("#supplier_id").on("change", function () {
+		const supplier_id = setActice()		
+		const dom_prices = $(".unit-price input")
+		$.each(dom_prices, function (ii, el) { 
+			const item_id = $(el).data('item-id')
+			const catalog = catalogs.find(c => c.item_id == item_id && c.supplier_id == supplier_id);
+			console.log(item_id, catalog);
+			if (catalog){
+				$(el).val(catalog.price)
+				calculate()
+			}
+		});
+	});	
+	
+	setActice()
+
 </script>

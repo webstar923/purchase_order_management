@@ -63,6 +63,7 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 						<option value="<?php echo $row['id'] ?>" <?php echo isset($project_id) && $project_id == $row['id'] ? 'selected' : '' ?>><?php echo $row['name'] ?></option>
 						<?php endwhile; ?>
 					</select>
+					<input type="hidden" name="project_no" id="project_no">
 				</div>
 				<div class="col-md-4 form-group">
 					<label for="supplier_id">Supplier</label>
@@ -89,25 +90,43 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 					<label for="delivery_date" class="control-label">Delivery Date</label>
 					<input type="date" name="delivery_date" id="delivery_date" class="form-control form-control-sm rounded-0" value="<?php echo isset($delivery_date) ? date("Y-m-d",strtotime($delivery_date)) :"" ?>" required>
 				</div>
+				<div class="col-md-6 form-group">
+					<label for="notes" class="control-label">Description</label>
+					<textarea name="notes" id="notes" cols="10" rows="4" class="form-control rounded-0"><?php echo isset($notes) ? $notes : '' ?></textarea>
+				</div>
+				<div class="col-md-6 form-group">
+					<label for="status" class="control-label">Status</label>
+					<select name="status" id="status" class="form-control form-control-sm rounded-0">
+						<option value="0" <?php echo isset($status) && $status == 0 ? 'selected': '' ?>>Pending</option>
+						<option value="1" <?php echo isset($status) && $status == 1 ? 'selected': '' ?>>Approved</option>
+						<option value="2" <?php echo isset($status) && $status == 2 ? 'selected': '' ?>>Denied</option>
+					</select>
+				</div>
 			</div>
 			<div class="row">
 				<div class="col-md-12">
 					<table class="table table-striped table-bordered" id="item-list">
 						<colgroup>
 							<col width="5%">
+							<col width="10%">
+							<col width="10%">
+							<col width="10%">
 							<col width="5%">
 							<col width="10%">
-							<col width="20%">
-							<col width="30%">
-							<col width="30%">
+							<col width="15%">
+							<col width="10%">
+							<col width="25%">
 						</colgroup>
 						<thead>
 							<tr class="bg-navy disabled">
 								<th class="px-1 py-1 text-center"></th>
-								<th class="px-1 py-1 text-center">Qty</th>
-								<th class="px-1 py-1 text-center">Unit</th>
-								<th class="px-1 py-1 text-center">Item</th>
-								<th class="px-1 py-1 text-center">Price</th>
+								<th class="px-1 py-1 text-center">Item Code</th>
+								<th class="px-1 py-1 text-center">Item Name</th>
+								<th class="px-1 py-1 text-center">CostCode</th>
+								<th class="px-1 py-1 text-center">QTY</th>
+								<th class="px-1 py-1 text-center">UOM</th>
+								<th class="px-1 py-1 text-center">Unit Price</th>
+								<th class="px-1 py-1 text-center">Tax Code</th>
 								<th class="px-1 py-1 text-center">Total</th>
 							</tr>
 						</thead>
@@ -123,14 +142,21 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 								<td class="align-middle p-1 text-center">
 									<button class="btn btn-sm btn-danger py-0" type="button" onclick="rem_item($(this))"><i class="fa fa-times"></i></button>
 								</td>
-								<td class="align-middle p-0 text-center">
-									<input type="number" class="text-center w-100 border-0" step="any" name="qty[]" value="<?php echo $row['quantity'] ?>"/>
-								</td>
-								<td class="align-middle p-1 item-unit">
-									<input type="text" class="text-center w-100 border-0" name="unit[]" value="<?php echo $row['unit'] ?>"/>
-								</td>
 								<td class="align-middle p-1 item-select">
 									<select name="item_id[]" id="<?php echo "itemselect".$i++ ?>" class="custom-select custom-select-sm rounded-0 select2" onchange="selectItem(this)">
+										<option value="" disabled <?php echo !isset($row['name']) ? "selected" :'' ?>></option>
+										<?php 
+											$item_qry = $conn->query("SELECT * FROM `item_list` order by `code` asc");
+											while($irow = $item_qry->fetch_assoc()):
+										?>
+										<option value="<?php echo $irow['id'] ?>" <?php echo isset($row['item_id']) && $row['item_id'] === $irow['id'] ? "selected" :'' ?>>
+											<?php echo $irow['code'] ?>
+										</option>
+										<?php endwhile; ?>
+									</select>
+								</td>
+								<td class="align-middle p-1 item-select">
+									<select id="<?php echo "itemselect_".$i++ ?>" class="custom-select custom-select-sm rounded-0 select2" onchange="selectItem(this)">
 										<option value="" disabled <?php echo !isset($row['name']) ? "selected" :'' ?>></option>
 										<?php 
 											$item_qry = $conn->query("SELECT * FROM `item_list` order by `name` asc");
@@ -142,8 +168,28 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 										<?php endwhile; ?>
 									</select>
 								</td>
+								<td class="align-middle p-1 item-costcode">
+									<input type="text" class="text-center w-100 border-0" name="costcode[]" value="<?php echo $row['costcode'] ?>"/>
+								</td>
+								<td class="align-middle p-0 text-center">
+									<input type="number" class="text-center w-100 border-0" step="any" name="qty[]" value="<?php echo $row['quantity'] ?>"/>
+								</td>
+								<td class="align-middle p-1 item-unit">
+									<input type="text" class="text-center w-100 border-0" name="unit[]" value="<?php echo $row['unit'] ?>"/>
+								</td>
 								<td class="align-middle p-1 unit-price">
 									<input type="number" step="any" class="text-right w-100 border-0" name="unit_price[]"  value="<?php echo ($row['unit_price']) ?>"/>
+								</td>
+								<td class="align-middle p-1">
+									<select name="taxcode_id[]" class="custom-select custom-select-sm rounded-0 text-center" onchange="calculate()">
+										<option value="0" selected>Select Tax Code</option>
+										<?php 
+											$taxcode_qry = $conn->query("SELECT * FROM `taxcode_list` order by `code` asc");
+											while($trow = $taxcode_qry->fetch_assoc()):
+										?>
+										<option value="<?php echo $trow['id'] ?>" <?php echo isset($row['item_id']) && $row['item_id'] === $trow['id'] ? "selected" :'' ?>><?php echo $trow['code'] ?></option>
+										<?php endwhile; ?>
+									</select>
 								</td>
 								<td class="align-middle p-1 text-right total-price"><?php echo number_format($row['quantity'] * $row['unit_price']) ?></td>
 							</tr>
@@ -152,51 +198,28 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 						<tfoot>
 							<tr class="bg-lightblue">
 								<tr>
-									<th class="p-1 text-right" colspan="5"><span><button class="btn btn btn-sm btn-flat btn-primary py-0 mx-1" type="button" id="add_row">Add Row</button></span> Sub Total</th>
+									<th class="p-1 text-right" colspan="8"><span><button class="btn btn btn-sm btn-flat btn-primary py-0 mx-1" type="button" id="add_row">Add Row</button></span> Sub Total</th>
 									<th class="p-1 text-right" id="sub_total">0</th>
 								</tr>
 								<tr>
-									<th class="p-1 text-right" colspan="5">Discount (%)
+									<th class="p-1 text-right" colspan="8">Discount (%)
 									<input type="number" step="any" name="discount_percentage" class="border-light text-right" value="<?php echo isset($discount_percentage) ? $discount_percentage : 0 ?>">
 									</th>
 									<th class="p-1"><input type="text" class="w-100 border-0 text-right" readonly value="<?php echo isset($discount_amount) ? $discount_amount : 0 ?>" name="discount_amount"></th>
 								</tr>
 								<tr>
-									<th class="p-1 text-right" colspan="5">Tax Inclusive (%)
-										<select class="form-control form-control-sm rounded-0 taxcode" onchange="selectTaxcode(this)">
-											<option value="" disabled selected>Select Taxcode</option>
-											<?php 
-												$taxcode_qry = $conn->query("SELECT * FROM `taxcode_list` order by `code` asc");
-												while($row = $taxcode_qry->fetch_assoc()):
-											?>
-											<option value="<?php echo $row['percentage'] ?>"><?php echo $row['code'] ?></option>
-											<?php endwhile; ?>
-										</select>
+									<th class="p-1 text-right" colspan="8">Tax Inclusive (%)
 										<input type="number" step="any" name="tax_percentage" class="border-light text-right" value="<?php echo isset($tax_percentage) ? $tax_percentage : 0 ?>">
 									</th>
 									<th class="p-1"><input type="text" class="w-100 border-0 text-right" readonly value="<?php echo isset($tax_amount) ? $tax_amount : 0 ?>" name="tax_amount"></th>
 								</tr>
 								<tr>
-									<th class="p-1 text-right" colspan="5">Total</th>
+									<th class="p-1 text-right" colspan="8">Total</th>
 									<th class="p-1 text-right" id="total">0</th>
 								</tr>
 							</tr>
 						</tfoot>
 					</table>
-					<div class="row">
-						<div class="col-md-6">
-							<label for="notes" class="control-label">Notes</label>
-							<textarea name="notes" id="notes" cols="10" rows="4" class="form-control rounded-0"><?php echo isset($notes) ? $notes : '' ?></textarea>
-						</div>
-						<div class="col-md-6">
-							<label for="status" class="control-label">Status</label>
-							<select name="status" id="status" class="form-control form-control-sm rounded-0">
-								<option value="0" <?php echo isset($status) && $status == 0 ? 'selected': '' ?>>Pending</option>
-								<option value="1" <?php echo isset($status) && $status == 1 ? 'selected': '' ?>>Approved</option>
-								<option value="2" <?php echo isset($status) && $status == 2 ? 'selected': '' ?>>Denied</option>
-							</select>
-						</div>
-					</div>
 				</div>
 			</div>
 		</form>
@@ -211,14 +234,19 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 		<td class="align-middle p-1 text-center">
 			<button class="btn btn-sm btn-danger py-0" type="button" onclick="rem_item($(this))"><i class="fa fa-times"></i></button>
 		</td>
-		<td class="align-middle p-0 text-center">
-			<input type="number" class="text-center w-100 border-0" value="1" step="any" name="qty[]"/>
-		</td>
-		<td class="align-middle p-1 item-unit">
-			<input type="text" class="text-center w-100 border-0" name="unit[]"/>
-		</td>
 		<td class="align-middle p-1 item-select">
 			<select name="item_id[]" class="custom-select custom-select-sm rounded-0 item-select2" onchange="selectItem(this)">
+                <option value="" disabled selected></option>
+                <?php 
+					$item_qry = $conn->query("SELECT * FROM `item_list` order by `code` asc");
+                    while($row = $item_qry->fetch_assoc()):
+                ?>
+                <option value="<?php echo $row['id'] ?>"><?php echo $row['code'] ?></option>
+                <?php endwhile; ?>
+            </select>
+		</td>
+		<td class="align-middle p-1 item-select">
+			<select class="custom-select custom-select-sm rounded-0 item-select2" onchange="selectItem(this)">
                 <option value="" disabled selected></option>
                 <?php 
 					$item_qry = $conn->query("SELECT * FROM `item_list` order by `name` asc");
@@ -228,8 +256,28 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
                 <?php endwhile; ?>
             </select>
 		</td>
+		<td class="align-middle p-0 item-costcode">
+			<input type="text" class="text-center w-100 border-0" name="costcode[]"/>
+		</td>
+		<td class="align-middle p-0">
+			<input type="number" class="text-center w-100 border-0" value="1" step="any" name="qty[]"/>
+		</td>
+		<td class="align-middle p-1 item-unit">
+			<input type="text" class="text-center w-100 border-0" name="unit[]"/>
+		</td>
 		<td class="align-middle p-1 unit-price">
 			<input type="number" step="any" class="text-right w-100 border-0" name="unit_price[]" value="0"/>
+		</td>
+		<td class="align-middle p-1">
+			<select name="taxcode_id[]" class="custom-select custom-select-sm rounded-0 text-center" onchange="calculate()">
+				<option value="0" selected>Select Tax Code</option>
+				<?php 
+					$taxcode_qry = $conn->query("SELECT * FROM `taxcode_list` order by `code` asc");
+					while($row = $taxcode_qry->fetch_assoc()):
+				?>
+				<option value="<?php echo $row['id'] ?>"><?php echo $row['code'] ?></option>
+				<?php endwhile; ?>
+			</select>
 		</td>
 		<td class="align-middle p-1 text-right total-price">0</td>
 	</tr>
@@ -256,6 +304,15 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 		echo json_encode($units);
 	?>;
 
+	var costcodes = <?php
+		$costcode_qry = $conn->query("SELECT * FROM `costcode_list` order by `name` asc");
+		$costcodes = [];
+		while($row = $costcode_qry->fetch_assoc()) {
+			$costcodes[] = $row;
+		}
+		echo json_encode($costcodes);
+	?>;
+
 	var catalogs = <?php
 		$catalog_qry = $conn->query("SELECT * FROM `sc_list`");
 		$catalogs = [];
@@ -263,6 +320,15 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 			$catalogs[] = $row;
 		}
 		echo json_encode($catalogs);
+	?>;
+
+	var taxcodes = <?php
+		$taxcode_qry = $conn->query("SELECT * FROM `taxcode_list`");
+		$taxcodes = [];
+		while($row = $taxcode_qry->fetch_assoc()) {
+			$taxcodes[] = $row;
+		}
+		echo json_encode($taxcodes);
 	?>;
 
 	function rem_item(_this){
@@ -276,6 +342,11 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 			var row_total = 0;
 			if(qty > 0 && unit_price > 0){
 				row_total = parseFloat(qty) * parseFloat(unit_price)
+				var taxcode_id = $(this).find("[name='taxcode_id[]']").val()
+				if (taxcode_id > 0) {
+					var taxcode = taxcodes.find(t => t.id == taxcode_id)
+					row_total = row_total * (1 + parseFloat(taxcode.percentage)/100)
+				}
 			}
 			$(this).find('.total-price').text(parseFloat(row_total).toLocaleString('en-US'))
 		})
@@ -384,12 +455,16 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 		let project = projects.find(p => p.id === $(el).val())
 		$('#delivery_address').val(project.address);
 		$('#notes').val(project.description);
+		$('#project_no').val(project.project_no);
 	}
 
 	function selectItem(el) {
 		var item = items.find(i => i.id === $(el).val())
 		var unit = units.find(u => u.id === item.uom_id)
 		$(el).closest('tr').find('.item-unit input').val(unit.name)
+
+		var costcode = costcodes.find(u => u.id === item.costcode_id)
+		$(el).closest('tr').find('.item-costcode input').val(costcode.name)
 
 		var catalog = catalogs.find(c => c.item_id === item.id && c.supplier_id === $('#supplier_id').val());
 		if (catalog) {
@@ -399,10 +474,8 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 			$(el).closest('tr').find('.unit-price input').val(0)
 			calculate()
 		}
-	}
 
-	function selectTaxcode(el) {
-		$(el).closest('tr').find('input[name=tax_percentage]').val($(el).val());
-		calculate()
+		$(el).closest('tr').find('.item-select select').val($(el).val())
+		$(el).closest('tr').find('.item-select2').select2({placeholder:"Please Select here",width:"relative"})
 	}
 </script>

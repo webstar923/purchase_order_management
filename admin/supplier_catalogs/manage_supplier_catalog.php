@@ -53,7 +53,7 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
         </div>
         <div class="form-group">
             <label for="price" class="control-label">Price</label>
-            <input type="text" name="price" id="price" class="form-control rounded-0" value="<?php echo isset($price) ? $price :"" ?>" required>
+            <input type="number" name="price" step="0.01" id="price" class="form-control rounded-0" value="<?php echo isset($price) ? $price :"0" ?>" required>
         </div>
         <div class="form-group">
             <label for="price_expiry_date" class="control-label">Price Expiry Date</label>

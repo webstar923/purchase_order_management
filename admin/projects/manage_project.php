@@ -24,6 +24,11 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
      <input type="hidden" name="id" value="<?php echo isset($id) ? $id : '' ?>">
     <div class="container-fluid">
         <div class="form-group">
+            <label for="project_no">Project ID <span class="po_err_msg text-danger"></span></label>
+            <input type="text" class="form-control rounded-0" id="project_no" name="project_no" value="<?php echo isset($project_no) ? $project_no : '' ?>">
+            <small><i>Leave this blank to Automatically Generate upon saving.</i></small>
+        </div>
+        <div class="form-group">
             <label for="name" class="control-label">Project Name</label>
             <input type="text" name="name" id="name" class="form-control rounded-0" value="<?php echo isset($name) ? $name :"" ?>" required>
         </div>
@@ -38,7 +43,7 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
         <div class="form-group">
             <label for="status" class="control-label">Contact</label>
             <select name="contact[]" id="contact" class="form-control rounded-0 select2" multiple>
-                <option value="" disabled <?php echo !isset($contact) ? "selected" :'' ?>></option>
+                <option disabled>Select Contact</option>
                 <?php 
                     $user_qry = $conn->query("SELECT * FROM `users`");
                     while($row = $user_qry->fetch_assoc()):

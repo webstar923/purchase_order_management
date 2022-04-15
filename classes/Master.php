@@ -24,7 +24,7 @@ Class Master extends DBConnection {
 		extract($_POST);
 		$data = "";
 		foreach($_POST as $k =>$v){
-			if(!in_array($k,array('id','description'))){
+			if(!in_array($k,array('id','description','address'))){
 				if(!empty($data)) $data .=",";
 				if ($k == 'contact') {
 					$contact = implode(',', $v);
@@ -42,12 +42,12 @@ Class Master extends DBConnection {
 			if(!empty($data)) $data .=",";
 				$data .= " `address`='".addslashes(htmlentities($address))."' ";
 		}
-		$check = $this->conn->query("SELECT * FROM `project_list` where `name` = '{$name}' ".(!empty($id) ? " and id != {$id} " : "")." ")->num_rows;
+		$check = $this->conn->query("SELECT * FROM `project_list` where `project_no` = '{$project_no}' ".(!empty($id) ? " and id != {$id} " : "")." ")->num_rows;
 		if($this->capture_err())
 			return $this->capture_err();
 		if($check > 0){
 			$resp['status'] = 'failed';
-			$resp['msg'] = "Project Name already exist.";
+			$resp['msg'] = "Project ID already exist.";
 			return json_encode($resp);
 			exit;
 		}
@@ -59,6 +59,12 @@ Class Master extends DBConnection {
 		$save = $this->conn->query($sql);
 		if($save){
 			$resp['status'] = 'success';
+
+			if ($this->conn->insert_id && $_POST['project_no'] === '') {
+				$project_no = str_pad($this->conn->insert_id, 4, '0', STR_PAD_LEFT);
+				$this->conn->query("UPDATE `project_list` set `project_no` = '{$project_no}' where id = '{$this->conn->insert_id}' ");
+			}
+
 			if(empty($id))
 				$this->settings->set_flashdata('success',"New project successfully saved.");
 			else
@@ -297,12 +303,12 @@ Class Master extends DBConnection {
 			if(!empty($data)) $data .=",";
 				$data .= " `description`='".addslashes(htmlentities($description))."' ";
 		}
-		$check = $this->conn->query("SELECT * FROM `item_list` where `name` = '{$name}' ".(!empty($id) ? " and id != {$id} " : "")." ")->num_rows;
+		$check = $this->conn->query("SELECT * FROM `item_list` where `code` = '{$code}' ".(!empty($id) ? " and id != {$id} " : "")." ")->num_rows;
 		if($this->capture_err())
 			return $this->capture_err();
 		if($check > 0){
 			$resp['status'] = 'failed';
-			$resp['msg'] = "Item Name already exist.";
+			$resp['msg'] = "Item Code already exist.";
 			return json_encode($resp);
 			exit;
 		}
@@ -441,7 +447,7 @@ Class Master extends DBConnection {
 		foreach($_POST as $k =>$v){
 			if(in_array($k,array('discount_amount','tax_amount')))
 				$v= str_replace(',','',$v);
-			if(!in_array($k,array('id','po_no')) && !is_array($_POST[$k])){
+			if(!in_array($k,array('id','po_no','project_no')) && !is_array($_POST[$k])){
 				$v = addslashes(trim($v));
 				if(!empty($data)) $data .=",";
 				$data .= " `{$k}`='{$v}' ";
@@ -458,12 +464,18 @@ Class Master extends DBConnection {
 				exit;
 			}
 		}else{
-			$po_no ="";
-			while(true){
-				$po_no = "PO-".(sprintf("%'.011d", mt_rand(1,99999999999)));
-				$check = $this->conn->query("SELECT * FROM `po_list` where `po_no` = '{$po_no}'")->num_rows;
-				if($check <= 0)
-				break;
+			$po_no = "";
+			$project_no_like = $_POST['project_no']."-";
+			$qry = $this->conn->query("SELECT * FROM `po_list` where `po_no` REGEXP '{$project_no_like}*[0-9]+' order by `date_created` desc limit 1");
+			if ($qry->num_rows) {
+				while($row = $qry->fetch_assoc()){
+					$last_po_no = $row['po_no'];
+					$project_po_no = explode('-', $last_po_no);
+					$last_po_no = intval(end($project_po_no));
+					$po_no = $project_no_like . str_pad($last_po_no + 1, 4, '0', STR_PAD_LEFT);
+				}
+			} else {
+				$po_no = $project_no_like . '0001';
 			}
 		}
 		$data .= ", po_no = '{$po_no}' ";
@@ -481,11 +493,11 @@ Class Master extends DBConnection {
 			$data = "";
 			foreach($item_id as $k =>$v){
 				if(!empty($data)) $data .=",";
-				$data .= "('{$po_id}','{$v}','{$unit[$k]}','{$unit_price[$k]}','{$qty[$k]}')";
+				$data .= "('{$po_id}','{$v}','{$unit[$k]}','{$costcode[$k]}','{$unit_price[$k]}','{$qty[$k]}','{$taxcode_id[$k]}')";
 			}
 			if(!empty($data)){
 				$this->conn->query("DELETE FROM `order_items` where po_id = '{$po_id}'");
-				$save = $this->conn->query("INSERT INTO `order_items` (`po_id`,`item_id`,`unit`,`unit_price`,`quantity`) VALUES {$data} ");
+				$save = $this->conn->query("INSERT INTO `order_items` (`po_id`,`item_id`,`unit`,`costcode`,`unit_price`,`quantity`,`taxcode_id`) VALUES {$data} ");
 			}
 			if(empty($id))
 				$this->settings->set_flashdata('success',"Purchase Order successfully saved.");
@@ -532,7 +544,7 @@ Class Master extends DBConnection {
 		foreach($_POST as $k =>$v){
 			if(in_array($k,array('discount_amount','tax_amount')))
 				$v= str_replace(',','',$v);
-			if(!in_array($k,array('id','ro_no')) && !is_array($_POST[$k])){
+			if(!in_array($k,array('id','ro_no','po_no')) && !is_array($_POST[$k])){
 				$v = addslashes(trim($v));
 				if(!empty($data)) $data .=",";
 				$data .= " `{$k}`='{$v}' ";
@@ -549,12 +561,18 @@ Class Master extends DBConnection {
 				exit;
 			}
 		}else{
-			$ro_no ="";
-			while(true){
-				$ro_no = "RO-".(sprintf("%'.011d", mt_rand(1,99999999999)));
-				$check = $this->conn->query("SELECT * FROM `ro_list` where `ro_no` = '{$ro_no}'")->num_rows;
-				if($check <= 0)
-				break;
+			$ro_no = "";
+			$po_no_like = $_POST['po_no']."-";
+			$qry = $this->conn->query("SELECT * FROM `ro_list` where `ro_no` REGEXP '{$po_no_like}*[0-9]+' order by `date_created` desc limit 1");
+			if ($qry->num_rows) {
+				while($row = $qry->fetch_assoc()){
+					$last_ro_no = $row['po_no'];
+					$po_ro_no = explode('-', $last_ro_no);
+					$last_ro_no = intval(end($po_ro_no));
+					$ro_no = $po_no_like . str_pad($last_ro_no + 1, 4, '0', STR_PAD_LEFT);
+				}
+			} else {
+				$ro_no = $po_no_like . '0001';
 			}
 		}
 		$data .= ", ro_no = '{$ro_no}' ";
@@ -572,11 +590,11 @@ Class Master extends DBConnection {
 			$data = "";
 			foreach($item_id as $k =>$v){
 				if(!empty($data)) $data .=",";
-				$data .= "('{$ro_id}','{$v}','{$unit[$k]}','{$unit_price[$k]}','{$qty[$k]}','{$received_qty[$k]}')";
+				$data .= "('{$ro_id}','{$v}','{$qty[$k]}','{$received_qty[$k]}')";
 			}
 			if(!empty($data)){
 				$this->conn->query("DELETE FROM `receive_order_items` where ro_id = '{$ro_id}'");
-				$save = $this->conn->query("INSERT INTO `receive_order_items` (`ro_id`,`item_id`,`unit`,`unit_price`,`quantity`,`received_qty`) VALUES {$data} ");
+				$save = $this->conn->query("INSERT INTO `receive_order_items` (`ro_id`,`item_id`,`quantity`,`received_qty`) VALUES {$data} ");
 			}
 			if(empty($id))
 				$this->settings->set_flashdata('success',"Receive Order successfully saved.");

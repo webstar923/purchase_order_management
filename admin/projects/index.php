@@ -17,16 +17,18 @@
 				<colgroup>
 					<col width="5%">
 					<col width="10%">
+					<col width="10%">
+					<col width="10%">
+					<col width="20%">
+					<col width="20%">
 					<col width="15%">
-					<col width="20%">
-					<col width="20%">
-					<col width="20%">
 					<col width="10%">
 				</colgroup>
 				<thead>
 					<tr class="bg-navy disabled">
 						<th>#</th>
 						<th>Date Created</th>
+						<th>Project ID</th>
 						<th>Project Name</th>
 						<th>Description</th>
 						<th>Address</th>
@@ -51,6 +53,7 @@
 						<tr>
 							<td class="text-center"><?php echo $i++; ?></td>
 							<td><?php echo date("Y-m-d H:i",strtotime($row['date_created'])) ?></td>
+							<td><?php echo $row['project_no'] ?></td>
 							<td><?php echo $row['name'] ?></td>
 							<td title="<?php echo $row['description'] ?>"><?php echo $row['description'] ?></td>
 							<td title="<?php echo $row['address'] ?>"><?php echo $row['address'] ?></td>

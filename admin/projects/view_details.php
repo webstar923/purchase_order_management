@@ -24,6 +24,8 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
 <div class="container fluid">
     <callout class="callout-primary">
         <dl class="row">
+            <dt class="col-md-4">Project ID</dt>
+            <dd class="col-md-8">: <?php echo $project_no ?></dd>
             <dt class="col-md-4">Project Name</dt>
             <dd class="col-md-8">: <?php echo $name ?></dd>
             <dt class="col-md-4">Description</dt>

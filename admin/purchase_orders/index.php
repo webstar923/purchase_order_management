@@ -39,10 +39,28 @@
 				<tbody>
 					<?php 
 					$i = 1;
-						$qry = $conn->query("SELECT po.*, s.name as sname FROM `po_list` po inner join `supplier_list` s on po.supplier_id = s.id order by unix_timestamp(po.date_updated) ");
+						$qry = $conn->query(
+							"SELECT po.*, s.name as sname 
+							FROM `po_list` po 
+							inner join `supplier_list` s on po.supplier_id = s.id 
+							order by unix_timestamp(po.date_updated) "
+						);
 						while($row = $qry->fetch_assoc()):
 							$row['item_count'] = $conn->query("SELECT * FROM order_items where po_id = '{$row['id']}'")->num_rows;
-							$row['total_amount'] = $conn->query("SELECT sum(quantity * unit_price) as total FROM order_items where po_id = '{$row['id']}'")->fetch_array()['total'];
+							$order_items_qry = $conn->query(
+								"SELECT o.*, t.percentage as percent
+								FROM `order_items` o 
+								left join taxcode_list t on o.taxcode_id = t.id 
+								where o.`po_id` = '{$row['id']}' "
+							);
+							$total_amount = 0;
+							while($item_row = $order_items_qry->fetch_assoc()) {
+								$line_price = $item_row['quantity'] * $item_row['unit_price'];
+								if (!empty($item_row['percent'])) {
+									$line_price = $line_price * (1 + $item_row['percent']/100);
+								}
+								$total_amount += $line_price;
+							}
 					?>
 						<tr>
 							<td class="text-center"><?php echo $i++; ?></td>
@@ -50,7 +68,7 @@
 							<td class=""><?php echo $row['po_no'] ?></td>
 							<td class=""><?php echo $row['sname'] ?></td>
 							<td><?php echo number_format($row['item_count']) ?></td>
-							<td><?php echo number_format($row['total_amount']) ?></td>
+							<td><?php echo number_format($total_amount) ?></td>
 							<td>
 								<?php 
 									switch ($row['status']) {

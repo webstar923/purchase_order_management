@@ -15,15 +15,13 @@
         <div class="container-fluid">
 			<table class="table table-hover table-striped">
 				<colgroup>
-					<col width="5%">
 					<col width="10%">
 					<col width="15%">
 					<col width="15%">
-					<col width="10%">
-					<col width="10%">
 					<col width="15%">
-					<col width="10%">
-					<col width="10%">
+					<col width="15%">
+					<col width="15%">
+					<col width="15%">
 				</colgroup>
 				<thead>
 					<tr class="bg-navy disabled">
@@ -31,9 +29,7 @@
 						<th>Date Created</th>
 						<th>RO #</th>
 						<th>PO #</th>
-						<th>Supplier</th>
 						<th>Items</th>
-						<th>Total Amount</th>
 						<th>Status</th>
 						<th>Action</th>
 					</tr>
@@ -42,35 +38,31 @@
 					<?php 
 					$i = 1;
 						$qry = $conn->query(
-							"SELECT ro.*, s.name as sname, po.po_no 
+							"SELECT ro.*,po.po_no 
 							FROM `ro_list` ro 
 							inner join `po_list` po on ro.po_id = po.id 
-							inner join `supplier_list` s on ro.supplier_id = s.id 
 							order by unix_timestamp(ro.date_updated) "
 						);
 						while($row = $qry->fetch_assoc()):
 							$row['item_count'] = $conn->query("SELECT * FROM receive_order_items where ro_id = '{$row['id']}'")->num_rows;
-							$row['total_amount'] = $conn->query("SELECT sum(quantity * unit_price) as total FROM receive_order_items where ro_id = '{$row['id']}'")->fetch_array()['total'];
 					?>
 						<tr>
 							<td class="text-center"><?php echo $i++; ?></td>
 							<td class=""><?php echo date("M d,Y H:i",strtotime($row['date_created'])) ; ?></td>
 							<td class=""><?php echo $row['ro_no'] ?></td>
 							<td class=""><?php echo $row['po_no'] ?></td>
-							<td class=""><?php echo $row['sname'] ?></td>
 							<td><?php echo number_format($row['item_count']) ?></td>
-							<td><?php echo number_format($row['total_amount']) ?></td>
 							<td>
 								<?php 
 									switch ($row['status']) {
 										case '1':
-											echo '<span class="badge badge-success">Approved</span>';
+											echo '<span class="badge badge-warning">Partially received</span>';
 											break;
 										case '2':
-											echo '<span class="badge badge-danger">Denied</span>';
+											echo '<span class="badge badge-success">Fully received</span>';
 											break;
 										default:
-											echo '<span class="badge badge-secondary">Pending</span>';
+											echo '<span class="badge badge-secondary">Not Received</span>';
 											break;
 									}
 								?>

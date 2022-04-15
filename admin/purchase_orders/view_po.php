@@ -93,18 +93,22 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
                     <colgroup>
                         <col width="10%">
                         <col width="10%">
-                        <col width="25%">
-                        <col width="25%">
+                        <col width="10%">
+                        <col width="10%">
+                        <col width="10%">
                         <col width="15%">
-                        <col width="15%">
+                        <col width="10%">
+                        <col width="25%">
                     </colgroup>
                     <thead>
                         <tr class="bg-navy disabled" style="">
-                            <th class="bg-navy disabled text-light px-1 py-1 text-center">Qty</th>
-                            <th class="bg-navy disabled text-light px-1 py-1 text-center">Unit</th>
-                            <th class="bg-navy disabled text-light px-1 py-1 text-center">Item</th>
-                            <th class="bg-navy disabled text-light px-1 py-1 text-center">Cost Code</th>
-                            <th class="bg-navy disabled text-light px-1 py-1 text-center">Price</th>
+                            <th class="bg-navy disabled text-light px-1 py-1 text-center">Item Code</th>
+                            <th class="bg-navy disabled text-light px-1 py-1 text-center">Item Name</th>
+                            <th class="bg-navy disabled text-light px-1 py-1 text-center">CostCode</th>
+                            <th class="bg-navy disabled text-light px-1 py-1 text-center">QTY</th>
+                            <th class="bg-navy disabled text-light px-1 py-1 text-center">UOM</th>
+                            <th class="bg-navy disabled text-light px-1 py-1 text-center">Unit Price</th>
+                            <th class="bg-navy disabled text-light px-1 py-1 text-center">Tax Code</th>
                             <th class="bg-navy disabled text-light px-1 py-1 text-center">Total</th>
                         </tr>
                     </thead>
@@ -112,43 +116,49 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
                         <?php 
                         if(isset($id)):
                         $order_items_qry = $conn->query(
-                            "SELECT o.*, i.name, c.name as costcode
+                            "SELECT o.*, i.name as iname, i.code as icode, t.code as taxcode, t.percentage as percent
                             FROM `order_items` o 
                             inner join item_list i on o.item_id = i.id 
-                            inner join costcode_list c on c.id = i.costcode_id 
+                            left join taxcode_list t on o.taxcode_id = t.id 
                             where o.`po_id` = '$id' "
                         );
                         $sub_total = 0;
                         while($row = $order_items_qry->fetch_assoc()):
-                            $sub_total += ($row['quantity'] * $row['unit_price']);
+                            $line_price = $row['quantity'] * $row['unit_price'];
+                            if (!empty($row['percent'])) {
+                                $line_price = $line_price * (1 + $row['percent']/100);
+                            }
+                            $sub_total += $line_price;
                         ?>
                         <tr class="po-item" data-id="">
-                            <td class="align-middle p-0 text-center"><?php echo $row['quantity'] ?></td>
-                            <td class="align-middle p-1"><?php echo $row['unit'] ?></td>
-                            <td class="align-middle p-1"><?php echo $row['name'] ?></td>
-                            <td class="align-middle p-1"><?php echo $row['costcode'] ?></td>
-                            <td class="align-middle p-1"><?php echo number_format($row['unit_price']) ?></td>
-                            <td class="align-middle p-1 text-right total-price"><?php echo number_format($row['quantity'] * $row['unit_price']) ?></td>
+                            <td class="align-middle p-1 text-center"><?php echo $row['icode'] ?></td>
+                            <td class="align-middle p-1 text-center"><?php echo $row['iname'] ?></td>
+                            <td class="align-middle p-1 text-center"><?php echo $row['costcode'] ?></td>
+                            <td class="align-middle p-1 text-center"><?php echo $row['quantity'] ?></td>
+                            <td class="align-middle p-1 text-center"><?php echo $row['unit'] ?></td>
+                            <td class="align-middle p-1 text-right"><?php echo number_format($row['unit_price']) ?></td>
+                            <td class="align-middle p-1 text-center"><?php echo $row['taxcode'] ?></td>
+                            <td class="align-middle p-1 text-right total-price"><?php echo number_format($line_price) ?></td>
                         </tr>
                         <?php endwhile;endif; ?>
                     </tbody>
                     <tfoot>
                         <tr class="bg-lightblue">
                             <tr>
-                                <th class="p-1 text-right" colspan="5">Sub Total</th>
+                                <th class="p-1 text-right" colspan="7">Sub Total</th>
                                 <th class="p-1 text-right" id="sub_total"><?php echo number_format($sub_total) ?></th>
                             </tr>
                             <tr>
-                                <th class="p-1 text-right" colspan="5">Discount (<?php echo isset($discount_percentage) ? $discount_percentage : 0 ?>%)
+                                <th class="p-1 text-right" colspan="7">Discount (<?php echo isset($discount_percentage) ? $discount_percentage : 0 ?>%)
                                 </th>
                                 <th class="p-1 text-right"><?php echo isset($discount_amount) ? number_format($discount_amount) : 0 ?></th>
                             </tr>
                             <tr>
-                                <th class="p-1 text-right" colspan="5">Tax Inclusive (<?php echo isset($tax_percentage) ? $tax_percentage : 0 ?>%)</th>
+                                <th class="p-1 text-right" colspan="7">Tax Inclusive (<?php echo isset($tax_percentage) ? $tax_percentage : 0 ?>%)</th>
                                 <th class="p-1 text-right"><?php echo isset($tax_amount) ? number_format($tax_amount) : 0 ?></th>
                             </tr>
                             <tr>
-                                <th class="p-1 text-right" colspan="5">Total</th>
+                                <th class="p-1 text-right" colspan="7">Total</th>
                                 <th class="p-1 text-right" id="total"><?php echo isset($tax_amount) ? number_format($sub_total - $discount_amount) : 0 ?></th>
                             </tr>
                         </tr>
@@ -181,28 +191,6 @@ if(isset($_GET['id']) && $_GET['id'] > 0){
         </div>
 	</div>
 </div>
-<table class="d-none" id="item-clone">
-	<tr class="po-item" data-id="">
-		<td class="align-middle p-1 text-center">
-			<button class="btn btn-sm btn-danger py-0" type="button" onclick="rem_item($(this))"><i class="fa fa-times"></i></button>
-		</td>
-		<td class="align-middle p-0 text-center">
-			<input type="number" class="text-center w-100 border-0" step="any" name="qty[]"/>
-		</td>
-		<td class="align-middle p-1">
-			<input type="text" class="text-center w-100 border-0" name="unit[]"/>
-		</td>
-		<td class="align-middle p-1">
-			<input type="hidden" name="item_id[]">
-			<input type="text" class="text-center w-100 border-0 item_id" required/>
-		</td>
-		<td class="align-middle p-1 item-description"></td>
-		<td class="align-middle p-1">
-			<input type="number" step="any" class="text-right w-100 border-0" name="unit_price[]" value="0"/>
-		</td>
-		<td class="align-middle p-1 text-right total-price">0</td>
-	</tr>
-</table>
 <script>
 	$(function(){
         $('#print').click(function(e){

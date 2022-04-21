@@ -549,7 +549,7 @@ Class Master extends DBConnection {
 				if(!empty($data)) $data .=",";
 				$data .= " `{$k}`='{$v}' ";
 			}
-		}
+		}		
 		if(!empty($ro_no)){
 			$check = $this->conn->query("SELECT * FROM `ro_list` where `ro_no` = '{$ro_no}' ".($id > 0 ? " and id != '{$id}' ":""))->num_rows;
 			if($this->capture_err())
@@ -566,7 +566,7 @@ Class Master extends DBConnection {
 			$qry = $this->conn->query("SELECT * FROM `ro_list` where `ro_no` REGEXP '{$po_no_like}*[0-9]+' order by `date_created` desc limit 1");
 			if ($qry->num_rows) {
 				while($row = $qry->fetch_assoc()){
-					$last_ro_no = $row['po_no'];
+					$last_ro_no = $row['ro_no'];
 					$po_ro_no = explode('-', $last_ro_no);
 					$last_ro_no = intval(end($po_ro_no));
 					$ro_no = $po_no_like . str_pad($last_ro_no + 1, 4, '0', STR_PAD_LEFT);
@@ -576,7 +576,7 @@ Class Master extends DBConnection {
 			}
 		}
 		$data .= ", ro_no = '{$ro_no}' ";
-
+		
 		if(empty($id)){
 			$sql = "INSERT INTO `ro_list` set {$data} ";
 		}else{
